@@ -70,6 +70,16 @@ For future entries, record:
 
 **Lesson:** Classify failures by layer—environment, network, authentication, provider, tool, policy, or application—before changing code. One successful live run proves the integration path, not production reliability.
 
+## 2026-09-11 — v0.2 Action Contracts
+
+**Assumption:** The mutation layer could begin with executable tools and add governance checks afterward.
+
+**Decision:** Define typed actors, approvals, incidents, and proposed actions first. `ActionPolicy` now validates identity, role, fields, secrets, approval scope, and state transitions without calling an external system.
+
+**Evidence:** Nine focused contract tests cover allowed creation and work notes plus denied identity, unknown fields, secret input in fields and reasons, self-approval, mismatched approval, invalid transitions, and malformed objects. The full suite passes 23 tests.
+
+**Lesson:** A typed proposal boundary makes authorization testable before side effects exist. Approval is a property of the exact proposed action—not a general permission that can be reused for a different change. Regression tests should include natural-language variants of security-sensitive terms, not only serialized field names.
+
 ## Current Assumptions to Test
 
 - Four synthetic runbooks are enough to validate architecture, not retrieval quality at scale.
@@ -78,6 +88,7 @@ For future entries, record:
 - Citation presence is necessary but does not prove the recommendation faithfully represents the source.
 - Deterministic unit tests plus one live smoke test do not establish broad behavioral consistency; scenario evaluations and repeated runs are still needed.
 - The v0.2 permission and approval matrix is a design hypothesis until implemented and tested.
+- The initial action contracts use a deliberately small incident state machine and role set; the mock API may expose additional fields only after policy tests define them.
 
 ## Next Learning Questions
 
