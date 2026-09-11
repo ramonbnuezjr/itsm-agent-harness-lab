@@ -1,166 +1,142 @@
 # ITSM Agent Harness Lab
 
-A hands-on lab for building governed AI agents in IT service management. This project implements a minimal but real agent harness—RAG, tool use, policy enforcement, and audit logging—wired to a ServiceNow-style incident workflow. It’s a concrete experiment in what work looks like when AI executes triage and resolution, and humans focus on planning and review.
+A hands-on lab for building governed AI agents in IT service management. The project explores what work looks like when AI executes more tasks while humans design constraints, approve consequential actions, and review outcomes.
 
-This is part of my broader exploration of the **future of work**: as AI executes more, human work shifts to designing systems, setting constraints, and reviewing outcomes.
+- Repository: https://github.com/ramonbnuezjr/itsm-agent-harness-lab
+- Builds: https://www.ramonbnuezjr.com/builds
+- Future of Work: https://www.ramonbnuezjr.com
 
-- Repo: https://github.com/ramonbnuezjr/itsm-agent-harness-lab  
-- Builds page: https://www.ramonbnuezjr.com/builds  
-- Future of Work: https://www.ramonbnuezjr.com  
+## Why This Exists
 
----
+An agent that can recommend or execute ITSM work is not automatically safe. Regulated and public-sector environments need explicit tool permissions, grounded recommendations, human approval gates, and evidence that reconstructs every decision.
 
-## Problem
+This lab asks: **What does a minimal, governed, and auditable ITSM agent look like in code?**
 
-IT teams are deploying AI agents for incident triage, resolution, and workflow automation, but without clear governance, auditability, or policy enforcement. In regulated and public-sector environments, “move fast and break things” is not an option.
+## Current Status: v0.1 Complete
 
-This lab asks: **What does a governed, auditable AI agent for ITSM actually look like in code?**
+The implemented baseline:
 
----
+- Loads four synthetic Markdown ITSM runbooks.
+- Ranks them with deterministic term-frequency cosine similarity.
+- Exposes one strict tool: `search_kb(query)`.
+- Uses a swappable `LLMProvider` with an OpenAI Responses API implementation.
+- Requires recommendations to cite a source returned during the same run.
+- Withholds recommendations that fail policy.
+- Records input, tool calls, raw and final output, and policy results in JSONL.
+- Loads local secrets from an ignored `.env` without overriding deployed variables.
+- Passes 13 offline tests and one live synthetic smoke test.
 
-## Why this matters
+v0.1 is read-only: it does not modify incidents or connect to ServiceNow.
 
-- AI agents will execute an increasing share of ITSM work.  
-- Leaders need patterns for **governance by design**: identity, tool permissions, policy checks, and audit trails on every action.  
-- This lab produces reusable patterns and reference code for building agents that are safe, explainable, and aligned to real processes.
-
----
-
-## What this lab explores
-
-- **Models & inference**: Choosing and swapping models for different tasks.  
-- **RAG**: Retrieval-augmented generation over ITSM knowledge bases and runbooks.  
-- **Agents & tool use**: ReAct-style loops that call tools (search, create, update).  
-- **MCP-style tooling**: Exposing capabilities as composable, governed tools.  
-- **Workflows**: Encoding incident triage and resolution as executable processes.  
-- **Governance**: Policies, guardrails, and audit logs as first-class citizens in the harness.  
-- **Edge considerations**: What parts of this can run under real cost and latency constraints.
-
----
-
-## Architecture (high level)
+## v0.1 Architecture
 
 ```text
-[Incident Input]
-      ↓
-[Agent Harness Loop]
-  - Reason (LLM)
-  - Tools: search_kb, create_incident, update_incident, check_governance
-  - Memory: short-term context + long-term skills/runbooks
-  - Guardrails: policy checks, citations, human-in-the-loop gates
-      ↓
-[ServiceNow-style API / Mock]
-      ↓
-[Audit Log (JSONL)]
+[Synthetic Incident]
+        |
+        v
+[Agent Harness]
+  |-- LLMProvider / OpenAI Responses API
+  |-- search_kb tool
+  |-- citation policy
+  `-- JSONL audit logger
+        |
+        v
+[Local Markdown KB + deterministic retriever]
 ```
 
-A more detailed diagram and rationale live in `docs/`.
+## Quickstart
 
----
+Python 3.10 or newer is required; Python 3.11 is the verified local runtime.
 
-## Current status
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[dev]'
+cp .env.example .env
+```
 
-- [x] Repo created, vision and scope defined  
-- [ ] v0.1: Basic RAG + one tool (`search_kb`) + simple agent loop  
-- [ ] v0.2: Add `create_incident` / `update_incident` tools + basic policies  
-- [ ] v1.0: Governance policies enforced + audit logging + sample scenarios  
-- [ ] Iterating: More tools, better observability, real ServiceNow integration  
+Edit `.env` and provide a project API key:
 
-See `docs/` and `experiments/` for ongoing notes and results.
+```dotenv
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4o-mini
+```
 
----
+Then run a synthetic incident:
 
-## How to use this repo
+```bash
+itsm-triage "One user cannot connect to the corporate VPN gateway"
+```
 
-### For builders
+The model can also be selected with `--model`. Audit events default to `var/audit.jsonl`.
 
-- Treat this as reference code and a thinking partner.
-- Clone, experiment, and adapt patterns to your own ITSM or workflow context.
-- Open issues or PRs if you extend this in interesting ways.
+## Verification
 
-### For leaders and architects
+Run all offline checks without calling the OpenAI API:
 
-- Use the patterns here to:
-  - Design your own agent harnesses.
-  - Frame governance conversations with security, risk, and compliance.
-  - Pilot small, governed agents before scaling.
+```bash
+python -m pytest
+python -m compileall -q src tests
+git diff --check
+```
 
----
+The live smoke-test record is summarized in `experiments/001-basic-triage/notes.md`. Local JSONL logs are ignored and may contain synthetic incident content.
 
-## Project structure
+## Security Boundaries
+
+- Never commit `.env`, API keys, passwords, MFA codes, or production incident data.
+- Commit only the empty `.env.example` template.
+- Use synthetic fixtures and incidents throughout v0.1 and v0.2.
+- Existing environment variables take precedence over `.env`.
+- OpenAI requests set `store=False` explicitly.
+- Treat local JSONL as development evidence, not production-grade audit storage.
+
+## Project Structure
 
 ```text
-itsm-agent-harness-lab/
-  docs/
-    01-problem-and-outcomes.md
-    02-architecture.md
-    03-governance-model.md
-    04-runbook.md
-  src/
-    harness/
-      loop.py
-      tools.py
-      memory.py
-      guardrails.py
-      logger.py
-    rag/
-      ingest.py
-      retrieve.py
-    servicenow/
-      client.py
-      mock_api.py
-    policies/
-      policy_engine.py
-      sample_policies.md
-  tests/
-    test_harness_loop.py
-    test_policies.py
-    test_scenarios/
-      incident_triage_p1.yaml
-      incident_triage_p3.yaml
-  experiments/
-    001-basic-triage/
-      notes.md
-      results.md
-  assets/
-    diagrams/
-      harness-architecture.png
-    slides/
-      itsm-harness-snug-talk.pptx
-  README.md
+data/kb/                         Synthetic approved runbooks
+docs/                            Product, governance, and learning records
+experiments/001-basic-triage/    Reproducible observations
+src/harness/                     Loop, tools, provider, config, and logger
+src/policies/                    Executable governance checks
+src/rag/                         KB ingestion and retrieval
+tests/                           Offline unit tests and scenario fixtures
+AGENTS.md                        Contributor guide
+pyproject.toml                   Package and dependency configuration
 ```
 
----
+## Documentation Map
 
-## What I assumed → How my thinking changed
+- `docs/00-codex-handoff.md` — product and architecture handoff.
+- `docs/01-problem-and-outcomes.md` — stakeholders, outcomes, and non-goals.
+- `docs/02-v0.1-plan.md` — completed implementation and verification record.
+- `docs/03-governance-model.md` — current citation policy and proposed mutation controls.
+- `docs/04-learning-log.md` — assumptions, mistakes, failures, decisions, and open questions.
+- `docs/05-v0.2-plan.md` — sequenced plan and acceptance criteria for governed mutation.
 
-- **Assumption:** Governance is mostly policy docs and human review.  
-  **Now:** Governance must be encoded in the harness: tool permissions, policy checks, mandatory citations, and audit logs on every action.
+The learning log is intentionally candid. A failed attempt is useful evidence when it is classified correctly and does not expose sensitive data.
 
-- **Assumption:** Agents are mostly about prompts.  
-  **Now:** The harness (loop, tools, memory, guardrails) matters more than the model for real-world behavior.
+## Roadmap
 
-- **Assumption:** Public-sector constraints slow innovation.  
-  **Now:** They force better design: explicit identities, clear policies, and auditable execution—exactly what enterprise AI needs.
+### v0.2 — Governed Incident Mutation
 
----
+1. Implement identity and action schemas.
+2. Add a local ServiceNow-style mock.
+3. Add `create_incident` behind validation and authorization.
+4. Add `update_incident` behind field permissions, transition rules, and approval gates.
+5. Audit attempted, denied, approved, completed, and failed actions.
 
-## Next steps
+The required execution sequence is:
 
-- Implement v0.1: basic RAG + one tool + simple loop.  
-- Write `docs/01-problem-and-outcomes.md` and `docs/03-governance-model.md`.  
-- Generate an architecture infographic and slide deck for talks.  
-- Share early findings on the blog and at NYC SNUG / AI meetups.
+`propose → validate → authenticate → authorize → approve if required → execute → audit`
 
----
+### Later
+
+- Compare lexical retrieval with embeddings using measured scenarios.
+- Add production-grade observability and audit storage patterns.
+- Evaluate real ServiceNow integration only after mock policies are stable.
+- Explore local and edge models as a separate phase.
 
 ## License
 
 MIT License — see [LICENSE](LICENSE).
-
----
-
-**Future of Work**
-
-This lab is one piece of a larger question: **What does work look like when AI executes more, and humans focus on planning and review?**  
-See more at: https://www.ramonbnuezjr.com

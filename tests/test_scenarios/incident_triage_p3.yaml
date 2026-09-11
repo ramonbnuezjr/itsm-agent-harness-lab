@@ -1,0 +1,7 @@
+name: single_user_vpn_failure
+incident: One remote employee cannot connect to VPN; other users are unaffected.
+expected:
+  sources:
+    - vpn-access.md
+  requires_citation: true
+  human_escalation: false

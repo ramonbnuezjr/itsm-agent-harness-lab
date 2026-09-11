@@ -1,0 +1,88 @@
+# Decisions, Assumptions, and Learning Log
+
+## Purpose
+
+This is the project’s durable learning record. It captures assumptions, mistakes, failed attempts, evidence, decisions, and unresolved questions. Update it whenever an assumption changes, a test exposes unexpected behavior, or a design tradeoff becomes clearer. Do not sanitize away useful failures, but never include credentials or sensitive incident data.
+
+## Entry Format
+
+For future entries, record:
+
+- **Date and context**
+- **Assumption or intended outcome**
+- **Observation, mistake, or failure**
+- **Decision and evidence**
+- **Lesson and follow-up**
+
+## 2026-09-10 — Repository Baseline
+
+**Assumption:** The README’s project tree described code already present in the repository.
+
+**Observation:** The repository initially contained only `README.md` and `LICENSE`; the tree was aspirational.
+
+**Decision:** Treat the README as design intent, then update it to distinguish implemented v0.1 components from planned architecture.
+
+**Lesson:** Documentation must label current state and target state explicitly. A plausible architecture diagram is not implementation evidence.
+
+## 2026-09-10 — Runtime and Dependency Setup
+
+**Assumption:** The default `python3` and test tooling would satisfy the handoff’s Python 3.10+ requirement.
+
+**Failure:** The default interpreter was Python 3.9.6. Python 3.11 was installed separately but initially lacked pytest. An isolated editable build also stalled while attempting dependency resolution under restricted network access.
+
+**Decision:** Create `.venv` with Python 3.11, install declared dependencies there, and verify commands through that environment. Use `pyproject.toml` as the dependency source of truth.
+
+**Lesson:** Verify interpreter version, dependency availability, and network constraints independently. “Python is installed” does not mean the project runtime is ready.
+
+## 2026-09-10 — Retrieval Baseline
+
+**Assumption:** A useful RAG prototype required embeddings or a vector database.
+
+**Decision:** Use deterministic term-frequency cosine similarity over four small Markdown runbooks for v0.1.
+
+**Evidence:** Offline tests retrieve the expected VPN and account-lockout sources.
+
+**Lesson:** Start with the simplest observable baseline. It is easier to explain, test, and compare against a later embedding-based retriever. The tradeoff is weaker semantic matching and no production-scale indexing.
+
+## 2026-09-10 — Citation Governance
+
+**Assumption:** Prompting the model to cite sources might be sufficient.
+
+**Decision:** Enforce citations outside the model. A citation is valid only when it exactly matches a source returned by `search_kb` during the same run.
+
+**Lesson:** Prompts express desired behavior; policies determine whether output may proceed. Governance must not depend solely on model compliance.
+
+## 2026-09-11 — Local Secret Handling
+
+**Mistake:** Initial setup documented a shell `export` but did not provide the expected local `.env` workflow.
+
+**Decision:** Add an ignored `.env`, a safe `.env.example`, automatic loading with `python-dotenv`, restrictive permissions on the local file, and precedence for already-set deployment variables.
+
+**Lesson:** Environment variables are the application interface; `.env` is a local-development convenience. Production should inject secrets through a managed environment or secret manager. Secret-handling expectations must be documented before asking a user to configure credentials.
+
+## 2026-09-11 — Live API Smoke Test
+
+**Intended outcome:** Validate authentication, Responses API function calling, KB retrieval, citation enforcement, and audit logging with synthetic data.
+
+**Failure:** The first attempt failed with a DNS connection error because the execution sandbox blocked network access. This was not an API-key or application failure.
+
+**Decision:** Retry with explicitly approved network access. The request succeeded using `gpt-4o-mini`, invoked `search_kb`, cited `[vpn-access.md]`, passed policy, and wrote audit event `d55600ac-3e55-4ebd-93e7-6e15711aa3b5` to the ignored local smoke-test log. The key was verified absent from the audit record.
+
+**Lesson:** Classify failures by layer—environment, network, authentication, provider, tool, policy, or application—before changing code. One successful live run proves the integration path, not production reliability.
+
+## Current Assumptions to Test
+
+- Four synthetic runbooks are enough to validate architecture, not retrieval quality at scale.
+- `gpt-4o-mini` remains an appropriate learning baseline; model choice should be reevaluated with cost, latency, and quality measurements rather than novelty.
+- Local JSONL is adequate for single-process experiments but not concurrent or production audit storage.
+- Citation presence is necessary but does not prove the recommendation faithfully represents the source.
+- Deterministic unit tests plus one live smoke test do not establish broad behavioral consistency; scenario evaluations and repeated runs are still needed.
+- The v0.2 permission and approval matrix is a design hypothesis until implemented and tested.
+
+## Next Learning Questions
+
+1. Which incident fields can an agent safely update without approval?
+2. How should approval be bound to a specific proposed action and expire?
+3. How often does lexical retrieval miss semantically relevant guidance?
+4. What audit fields help reviewers reconstruct decisions without over-collecting data?
+5. How should policy versions and model versions be compared across experiments?

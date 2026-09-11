@@ -1,0 +1,8 @@
+name: critical_email_outage
+incident: Email is unavailable for all employees and no workaround exists.
+expected:
+  sources:
+    - email-delivery.md
+    - incident-priority.md
+  requires_citation: true
+  human_escalation: true
