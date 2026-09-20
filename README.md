@@ -100,6 +100,7 @@ experiments/001-basic-triage/    Reproducible observations
 src/harness/                     Loop, tools, provider, config, and logger
 src/policies/                    Executable governance checks
 src/rag/                         KB ingestion and retrieval
+src/servicenow/                  Local incident mock standing in for ServiceNow
 tests/                           Offline unit tests and scenario fixtures
 AGENTS.md                        Contributor guide
 pyproject.toml                   Package and dependency configuration

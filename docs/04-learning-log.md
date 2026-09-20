@@ -80,6 +80,22 @@ For future entries, record:
 
 **Lesson:** A typed proposal boundary makes authorization testable before side effects exist. Approval is a property of the exact proposed action—not a general permission that can be reused for a different change. Regression tests should include natural-language variants of security-sensitive terms, not only serialized field names.
 
+## 2026-09-19 — v0.2 Local Incident Mock
+
+**Assumption:** A local mock and a real ServiceNow Personal Developer Instance were alternatives, and choosing the instance would make the mock unnecessary.
+
+**Decision:** Treat them as two targets with different jobs, mirroring the v0.1 model layer. The mock backs the default suite because governed-denial cases must run repeatedly, offline, and deterministically; a developer instance would later prove wire-level facts the mock cannot — real field names, the actual `state` representation, and authentication. The mock is reached through an `IncidentRepository` protocol so a future instance client can occupy the same seam, exactly as `LLMProvider` does for model providers.
+
+**Decision:** Split enforcement by layer. `MockServiceNowAPI` enforces integrity — the record exists, the field is real, the value is a legal enum member, and a rejected write leaves no trace. It does not enforce identity, role, approval, or transition legality. `test_update_does_not_enforce_state_transitions` deliberately asserts that the mock permits `new` to `closed`, so that deleting `ActionPolicy` would break policy tests instead of passing silently against a mock strict enough to hide the loss.
+
+**Evidence:** Eighteen tests cover deterministic identifiers, retrieval, append-only work notes, changed-field reporting, unknown and non-updatable fields, invalid enum values, missing records, caller-mutation isolation, and audit serialization. Validation completes before any value is stored, so a partially invalid update leaves the record untouched. The full suite passes 41 tests offline.
+
+**Decision:** `ChangeRecord` carries only the fields a write actually changed, not the whole record. This is a first answer to learning question 4: a reviewer can reconstruct the delta without the audit log accumulating unchanged incident content.
+
+**Lesson:** A mock is a test instrument, and its strictness is a design choice rather than a fidelity goal. Making it stricter than the real system would have produced passing tests that no longer depended on the governance layer being present.
+
+**Follow-up:** `src/servicenow/mock_api.py` imports field names and enums from `src/policies/action_contracts.py` to keep one vocabulary for an incident. The dependency arguably runs backwards, since field names and states are properties of the external system rather than of policy. Revisit when a real instance client exists and the true field vocabulary is known.
+
 ## Current Assumptions to Test
 
 - Four synthetic runbooks are enough to validate architecture, not retrieval quality at scale.
@@ -89,6 +105,7 @@ For future entries, record:
 - Deterministic unit tests plus one live smoke test do not establish broad behavioral consistency; scenario evaluations and repeated runs are still needed.
 - The v0.2 permission and approval matrix is a design hypothesis until implemented and tested.
 - The initial action contracts use a deliberately small incident state machine and role set; the mock API may expose additional fields only after policy tests define them.
+- A developer instance is expected to contradict some mock assumptions, particularly the string incident states and the simplified field set; the mock is a governance instrument, not a fidelity claim.
 
 ## Next Learning Questions
 
