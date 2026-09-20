@@ -178,6 +178,11 @@ def _contains_secret(value: object) -> bool:
     return any(marker in lowered for marker in markers) or "sk-" in lowered
 
 
+# Public alias. Audit redaction must apply exactly the rule policy denies on,
+# so the two can never drift apart.
+contains_secret = _contains_secret
+
+
 class ActionPolicy:
     """Evaluate action contracts before any execution adapter is called."""
 

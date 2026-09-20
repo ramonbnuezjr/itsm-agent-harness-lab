@@ -26,6 +26,8 @@ The implemented baseline:
 - Loads local secrets from an ignored `.env` without overriding deployed variables.
 - Passes 13 offline tests and one live synthetic smoke test.
 
+Governed creation is in place for v0.2: `create_incident` runs the documented `propose -> validate -> authenticate -> authorize -> approve if required -> execute -> audit` sequence against the local incident mock. The suite now passes 59 offline tests.
+
 v0.1 is read-only: it does not modify incidents or connect to ServiceNow.
 
 ## v0.1 Architecture
@@ -121,11 +123,11 @@ The learning log is intentionally candid. A failed attempt is useful evidence wh
 
 ### v0.2 — Governed Incident Mutation
 
-1. Implement identity and action schemas.
-2. Add a local ServiceNow-style mock.
-3. Add `create_incident` behind validation and authorization.
+1. Implement identity and action schemas. **Done.**
+2. Add a local ServiceNow-style mock. **Done.**
+3. Add `create_incident` behind validation and authorization. **Done.**
 4. Add `update_incident` behind field permissions, transition rules, and approval gates.
-5. Audit attempted, denied, approved, completed, and failed actions.
+5. Audit attempted, denied, approved, completed, and failed actions. **Done for creation.**
 
 The required execution sequence is:
 
